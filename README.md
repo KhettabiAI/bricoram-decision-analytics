@@ -12,7 +12,7 @@ deterministic checks decide whether a number may reach the founder.**
 | | Finding | Where |
 |---|---|---|
 | **Real data** | 2 arithmetically impossible rows in Bricoram's public plumbing price guide (mean outside [min, max]), 2 outlier warnings, 45/49 items clean | [memos/02](memos/02_price_guide_guardrails.md) · [evidence](evidence/2026-11-22/README.md) |
-| Synthetic | National fill rate falls 71% → 65% while **every** segment improves: Simpson's paradox, caught by an exact mix-vs-rate decomposition | [sql/03](sql/03_mix_vs_rate.sql) |
+| Synthetic | National fill rate falls 71% → 66%, yet the performance (rate) effect is **positive** (+5 pts): the whole drop is demand shifting to low-supply wilayas. Simpson's paradox, caught by an exact mix-vs-rate decomposition | [sql/03](sql/03_mix_vs_rate.sql) |
 | Synthetic | A naive 3-way join inflates lead revenue **×4.8**; counting `pro_services` rows inflates supply **×18** | [docs/planted-traps.md](docs/planted-traps.md) |
 | Tooling | DBHub ≥ 1.x silently caps results (LIMIT 600 → 500 rows, no error) and no longer accepts `--readonly`; a PostgreSQL role can lift its own `statement_timeout` | [hooks/sql_guard.py](hooks/sql_guard.py) · [tests](tests/test_security.py) |
 
