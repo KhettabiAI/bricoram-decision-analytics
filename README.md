@@ -42,9 +42,11 @@ uv run pytest -q
 claude                      # the project's .mcp.json, hooks and agents load automatically
 ```
 
-On Windows without Docker, leaving `DATABASE_URL` empty falls back to an embedded
-PostgreSQL (`pgserver`). It is convenient for tests but fragile after a crash, so a
-real local service is preferred for the analysis database.
+**Windows:**
+- Verified with the official PostgreSQL 17 service, Claude Code 2.1.330 and DBHub via plain `npx`; no `cmd /c` wrapper was needed.
+- Leaving `DATABASE_URL` empty falls back to an embedded PostgreSQL (`pgserver`). Avoid it for the analysis database:
+  - it picks a random port on every start, so `dbhub.toml` goes stale;
+  - after a crash it can fail recovery on Windows (it keeps its log file open inside the data directory).
 
 ## Map
 
