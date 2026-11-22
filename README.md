@@ -26,6 +26,10 @@ deterministic checks decide whether a number may reach the founder.**
 | 4. Stop hook | Claude cannot finish while SQL reconciliation, audit or lint fails (`stop_hook_active` loop guard) | yes, exit 2 |
 | 5. CLAUDE.md + `qa-reviewer` | Grain-first SQL, Algiers time, Wilson / shrinkage, mix vs rate, `[query]` / `[assumption]` tags | guidance |
 
+**See it work:** [docs/demo-session.md](docs/demo-session.md) is a real Claude Code
+session in which the guard blocks a query that would be silently truncated, and Claude
+recovers by exploring the columns and running one correct aggregate.
+
 Every `sql/*.sql` file is tested twice: the guard must allow it, and its totals must
 reconcile with an independent single-table query (`tests/test_sql_files.py`).
 **100 tests**, run in CI against PostgreSQL 16.
