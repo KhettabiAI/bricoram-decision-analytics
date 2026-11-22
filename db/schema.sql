@@ -1,0 +1,169 @@
+-- Bricoram marketplace — simulated relational model (PostgreSQL 16).
+--
+-- Grounded in public facts (see docs/research/monetization.md):
+--   * clients use the platform for free; pros pay points to RESPOND to a request
+--     (unlocks the client's phone + chat), whether or not they win the job;
+--   * 1 point = 10 DZD; price per response is 0–20 points, set by an algorithm
+--     from past competition in (area × service) — NOT from the job's value;
+--   * client↔pro payment happens off-platform (reviews.paid_price_dzd is self-reported).
+-- Everything else (column names, status codes) is a simulation assumption.
+--
+-- Conventions: timestamps are timestamptz stored in UTC (Django USE_TZ=True);
+-- money is NUMERIC(12,2) in DZD; every table states its GRAIN.
+
+BEGIN;
+
+-- ── Geography ───────────────────────────────────────────────────────────────
+-- GRAIN: one row per wilaya under the 2026 territorial law (69 wilayas).
+CREATE TABLE wilayas (
+    code            smallint PRIMARY KEY CHECK (code BETWEEN 1 AND 69),
+    name_fr         text NOT NULL,
+    name_ar         text NOT NULL,
+    -- Wilaya this territory belonged to under the 58-wilaya map (NULL = unchanged).
+    parent_code_58  smallint CHECK (parent_code_58 BETWEEN 1 AND 58)
+);
+
+-- GRAIN: one row per commune (1,541).
+CREATE TABLE communes (
+    id           integer PRIMARY KEY,
+    wilaya_code  smallint NOT NULL REFERENCES wilayas (code),
+    name_fr      text NOT NULL,
+    name_ar      text,
+    lat          numeric(9,6),
+    lng          numeric(9,6)
+);
+CREATE INDEX communes_wilaya_idx ON communes (wilaya_code);
+
+-- ── Lookups (status codes are decoded here, never guessed) ─────────────────
+-- GRAIN: one row per request status code.
+CREATE TABLE request_statuses (
+    code   smallint PRIMARY KEY,
+    label  text NOT NULL UNIQUE
+);
+INSERT INTO request_statuses (code, label) VALUES
+    (1, 'open'), (2, 'quoted'), (3, 'hired'), (4, 'completed'),
+    (5, 'cancelled_by_client'), (6, 'expired');
+
+-- GRAIN: one row per quote status code.
+CREATE TABLE quote_statuses (
+    code   smallint PRIMARY KEY,
+    label  text NOT NULL UNIQUE
+);
+INSERT INTO quote_statuses (code, label) VALUES
+    (1, 'sent'), (2, 'accepted'), (3, 'declined'), (4, 'withdrawn');
+
+-- ── Actors ──────────────────────────────────────────────────────────────────
+-- GRAIN: one row per registered account (client or pro). Contains PII.
+CREATE TABLE users (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    role        text NOT NULL CHECK (role IN ('client', 'pro')),
+    full_name   text NOT NULL,          -- PII
+    phone       text,                   -- PII
+    email       text,                   -- PII
+    commune_id  integer REFERENCES communes (id),
+    created_at  timestamptz NOT NULL DEFAULT NOW()
+);
+CREATE INDEX users_commune_idx ON users (commune_id);
+CREATE INDEX users_created_idx ON users (created_at);
+
+-- GRAIN: one row per pro profile (1:1 with users where role = 'pro').
+CREATE TABLE pros (
+    id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id         bigint NOT NULL UNIQUE REFERENCES users (id),
+    is_id_verified  boolean NOT NULL DEFAULT FALSE,
+    points_balance  integer NOT NULL DEFAULT 0 CHECK (points_balance >= 0),
+    created_at      timestamptz NOT NULL DEFAULT NOW()
+);
+
+-- GRAIN: one row per service (100+).
+CREATE TABLE services (
+    id             integer PRIMARY KEY,
+    slug           text NOT NULL UNIQUE,
+    category_slug  text NOT NULL,       -- e.g. plomberie, electricite
+    name_fr        text NOT NULL,
+    pricing_unit   text NOT NULL        -- Unité, M², ML, m³, jour, dossier…
+);
+CREATE INDEX services_category_idx ON services (category_slug);
+
+-- GRAIN: one row per (pro × service).  ⚠ M:N bridge — counting pros from this
+-- table without DISTINCT/pre-aggregation inflates supply.
+CREATE TABLE pro_services (
+    pro_id          bigint  NOT NULL REFERENCES pros (id),
+    service_id      integer NOT NULL REFERENCES services (id),
+    base_price_dzd  numeric(12,2) CHECK (base_price_dzd >= 0),
+    PRIMARY KEY (pro_id, service_id)
+);
+CREATE INDEX pro_services_service_idx ON pro_services (service_id);
+
+-- ── Marketplace flow ────────────────────────────────────────────────────────
+-- GRAIN: one row per published client request (the hub of most analyses).
+CREATE TABLE requests (
+    id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    client_id     bigint   NOT NULL REFERENCES users (id),
+    service_id    integer  NOT NULL REFERENCES services (id),
+    commune_id    integer  NOT NULL REFERENCES communes (id),
+    status_code   smallint NOT NULL REFERENCES request_statuses (code),
+    is_urgent     boolean  NOT NULL DEFAULT FALSE,
+    -- Points a pro pays to respond, fixed at publication (0–20, competition-based).
+    points_price  smallint NOT NULL CHECK (points_price BETWEEN 0 AND 20),
+    budget_dzd    numeric(12,2) CHECK (budget_dzd >= 0),
+    description   text,                 -- free text from users: untrusted input
+    created_at    timestamptz NOT NULL DEFAULT NOW()
+);
+CREATE INDEX requests_service_created_idx ON requests (service_id, created_at);
+CREATE INDEX requests_commune_idx ON requests (commune_id);
+CREATE INDEX requests_client_idx ON requests (client_id);
+CREATE INDEX requests_created_idx ON requests (created_at);
+
+-- GRAIN: one row per pro response to a request.  ⚠ 1:N with requests —
+-- pre-aggregate to request_id before joining other 1:N tables (fan-out trap #1).
+CREATE TABLE quotes (
+    id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    request_id        bigint   NOT NULL REFERENCES requests (id),
+    pro_id            bigint   NOT NULL REFERENCES pros (id),
+    status_code       smallint NOT NULL REFERENCES quote_statuses (code),
+    quoted_price_dzd  numeric(12,2) CHECK (quoted_price_dzd >= 0),
+    created_at        timestamptz NOT NULL DEFAULT NOW(),
+    UNIQUE (request_id, pro_id)
+);
+CREATE INDEX quotes_pro_created_idx ON quotes (pro_id, created_at);
+CREATE INDEX quotes_request_created_idx ON quotes (request_id, created_at);
+
+-- GRAIN: one row per review (at most one per request).
+CREATE TABLE reviews (
+    id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    request_id      bigint   NOT NULL UNIQUE REFERENCES requests (id),
+    pro_id          bigint   NOT NULL REFERENCES pros (id),
+    rating          smallint NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    paid_price_dzd  numeric(12,2) CHECK (paid_price_dzd >= 0),  -- self-reported
+    comment         text,               -- free text from users: untrusted input
+    created_at      timestamptz NOT NULL DEFAULT NOW()
+);
+CREATE INDEX reviews_pro_idx ON reviews (pro_id);
+
+-- GRAIN: one row per points movement (ledger).  ⚠ 1:N with pros and requests —
+-- always aggregate to pro_id or request_id before joining (fan-out trap #2).
+CREATE TABLE point_transactions (
+    id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pro_id            bigint  NOT NULL REFERENCES pros (id),
+    transaction_type  text    NOT NULL
+        CHECK (transaction_type IN ('topup', 'lead_unlock', 'adjustment')),
+    payment_method    text
+        CHECK (payment_method IN ('bna_transfer', 'ccp', 'baridimob', 'cib_edahabia_satim')),
+    request_id        bigint REFERENCES requests (id),
+    quote_id          bigint UNIQUE REFERENCES quotes (id),
+    points_delta      integer NOT NULL,
+    amount_dzd        numeric(12,2) NOT NULL,
+    created_at        timestamptz NOT NULL DEFAULT NOW(),
+    -- 1 point = 10 DZD, sign follows the points movement.
+    CHECK (amount_dzd = points_delta * 10),
+    CHECK (transaction_type <> 'topup'
+           OR (points_delta > 0 AND payment_method IS NOT NULL AND request_id IS NULL)),
+    CHECK (transaction_type <> 'lead_unlock'
+           OR (points_delta < 0 AND quote_id IS NOT NULL AND request_id IS NOT NULL
+               AND payment_method IS NULL))
+);
+CREATE INDEX point_tx_pro_created_idx ON point_transactions (pro_id, created_at);
+CREATE INDEX point_tx_request_idx ON point_transactions (request_id);
+
+COMMIT;

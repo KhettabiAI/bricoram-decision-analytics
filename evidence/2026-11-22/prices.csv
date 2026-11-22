@@ -1,0 +1,50 @@
+category,item,unit,min_dzd,mean_dzd,max_dzd
+electricite,Dépannage électricité,Intervention,2000,3000,5000
+electricite,Déplacement compteur,Unité,8000,10000,12000
+electricite,Installation armoire électrique,Unité,2000,4000,5000
+electricite,Installation disjoncteur,Unité,2500,4000,6000
+electricite,Installation tableau électrique,Unité,2000,4000,8000
+electricite,Installation electrique F3 globale,Unité,3000,40000,45000
+electricite,Instalation boite dérivation,Unité,1000,1200,1500
+electricite,Installation prise courant,Unité,500,1000,1500
+electricite,Pose interrupteur,Unité,600,1000,1200
+electricite,Pose lustre,Unité,500,1000,1500
+electricite,Pose spot LED ou lampe,Unité,400,700,1000
+genie-civil,Étude génie civil de base,m²,140,250,300
+genie-civil,Étude de stabilité et formulation,dossier,18600,40500,76000
+genie-civil,Suivi de chantier,jour,4000,5000,12600
+genie-civil,Béton armé et coffrage,m³,1200,5000,44400
+genie-civil,Terrassement et VRD,m³,800,1000,1200
+maconnerie,Pose brique,M²,300,400,500
+maconnerie,Pose carrelage et dalle de sol,M²,600,900,1600
+maconnerie,Pose faïence,M²,600,900,1600
+maconnerie,Chape,M²,400,450,600
+maconnerie,Pose plinthe,ML,300,500,700
+maconnerie,Pose marbre façade,M²,3000,3500,4000
+maconnerie,Construction poteau,ML,2000,2500,3000
+maconnerie,Dalle,M²,1500,1800,2500
+maconnerie,Crépissage interieur (Telbass),M²,350,400,500
+maconnerie,Crépissage interieur fourniture et pose,M²,900,1000,1100
+maconnerie,Crépissage exterieur (Telbass façade),M²,550,600,850
+maconnerie,Crépissage exterieur fourniture et pose,M²,1100,1200,1200
+peinture,Peinture simple,M2,200,550,800
+peinture,Peinture décorative,M2,600,1500,5000
+peinture,Enduit,M2,200,300,500
+peinture,Monocouche extérieure,M2,2500,2800,3000
+plomberie,Installation chauffage simple,Unité,3000,4000,5000
+plomberie,Installation chauffe-bain,Unité,2000,3000,4000
+plomberie,Installation radiateur,Unité,5000,10000,8000
+plomberie,Installation chaudière,Unité,10000,1500,25000
+plomberie,Installation WC (toilette anglaise),Unité,2500,3500,4000
+plomberie,Installation WC (toilette turque),Unité,6000,7000,8000
+plomberie,Pose lavabo,Unité,2500,3500,5000
+plomberie,Pose évier,Unité,2000,2500,3000
+plomberie,Installation douche ou bignoire,Unité,3000,4500,6000
+plomberie,Pose cabine de douche,Unité,6000,7000,8000
+plomberie,Pose chasse d'eau,Unité,1500,2500,4000
+plomberie,Installation citerne d'eau (avec serveau et moteur),Unité,5000,8000,12000
+plomberie,Installation supresseur ou citerne SEUL,Unité,3000,3500,4000
+plomberie,Installation robinet,Unité,1500,1700,2000
+plomberie,Installation de gaz,M,300,500,800
+plomberie,Réparation chaudière,Unité,3000,3500,4000
+plomberie,"Dépannage plomberie (fuite d'eau , toilette bouché)",Unité,2000,2500,4000

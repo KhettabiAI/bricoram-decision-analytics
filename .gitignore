@@ -1,0 +1,22 @@
+# Python / tooling
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Local database (embedded PostgreSQL data dir)
+.pgdata/
+
+# Secrets
+.env
+*.local.json
+# Generated from dbhub.toml.example by scripts/db.py; holds the read-only DSN.
+dbhub.toml
+
+# Local working notes
+private/
+
+# Raw page captures are Bricoram's full pages (their content, possibly pros' reviews): keep local.
+# Publish only the derived CSVs and SHA256SUMS.
+evidence/*/raw/*.html

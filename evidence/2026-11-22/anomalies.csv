@@ -1,0 +1,4 @@
+category,item,unit,min_dzd,mean_dzd,max_dzd,severity,issue
+genie-civil,Béton armé et coffrage,m³,1200,5000,44400,warning,"extreme skew (max/min=37.0, mean at 9% of range)"
+plomberie,Installation radiateur,Unité,5000,10000,8000,error,mean > max (gap 2000)
+plomberie,Installation chaudière,Unité,10000,1500,25000,error,mean < min (gap 8500)
