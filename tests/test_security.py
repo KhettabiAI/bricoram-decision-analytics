@@ -79,14 +79,20 @@ def test_session_guardrails(ro):
 
 
 def test_status_codes_are_decoded_not_guessed(ro, seeded):
-    assert ro.execute("SELECT status FROM v_requests").fetchone()[0] == "hired"
+    statuses = {r[0] for r in ro.execute("SELECT DISTINCT status FROM v_requests")}
+    assert statuses and not any(s.startswith("UNMAPPED_") for s in statuses)
     # A code with no label cannot even be stored: the FK to the lookup table rejects it.
-    with (psycopg.connect(seeded, autocommit=True) as admin,
+    with (psycopg.connect(seeded) as admin,
           pytest.raises(psycopg.errors.ForeignKeyViolation)):
-        admin.execute("UPDATE requests SET status_code = 99")
+        admin.execute("UPDATE requests SET status_code = 99 WHERE id = 1")
 
 
-def test_algiers_local_time_crosses_midnight(ro):
-    # 23:30 UTC on the 21st is 00:30 on the 22nd in Algiers (UTC+1, no DST).
-    utc, dz = ro.execute("SELECT created_at_utc, created_at_dz FROM v_requests").fetchone()
-    assert utc.day == 21 and dz.day == 22
+def test_algiers_local_time_is_utc_plus_one(ro):
+    # Algeria is UTC+1 all year (no DST), so 23:xx UTC is already tomorrow locally.
+    wrong, crossing = ro.execute("""
+        SELECT
+            COUNT(*) FILTER (WHERE created_at_dz
+                <> (created_at_utc AT TIME ZONE 'UTC') + INTERVAL '1 hour'),
+            COUNT(*) FILTER (WHERE created_at_dz::date <> (created_at_utc AT TIME ZONE 'UTC')::date)
+        FROM v_requests""").fetchone()
+    assert wrong == 0 and crossing > 0

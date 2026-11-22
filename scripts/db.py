@@ -76,11 +76,35 @@ def init(password: str) -> str:
         conn.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(DB_NAME)))
         conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(DB_NAME)))
     with psycopg.connect(with_db(base, DB_NAME), autocommit=True) as conn:
-        for f in ("schema.sql", "ro_security.sql"):
-            conn.execute((ROOT / "db" / f).read_text(encoding="utf-8"))
+        conn.execute((ROOT / "db" / "schema.sql").read_text(encoding="utf-8"))
+        load_geo(conn)
+        conn.execute((ROOT / "db" / "ro_security.sql").read_text(encoding="utf-8"))
         conn.execute(sql.SQL("ALTER ROLE {} PASSWORD {}").format(
             sql.Identifier(RO_ROLE), sql.Literal(password)))
     return base
+
+
+def load_geo(conn: psycopg.Connection):
+    """Load the 69 wilayas and 1,541 communes from data/ref (see NOTICE.md)."""
+    ref = ROOT / "data" / "ref"
+    with conn.transaction():
+        with conn.cursor().copy(
+            "COPY wilayas (code, name_fr, name_ar, parent_code_58) FROM STDIN"
+        ) as cp:
+            for r in _read_csv(ref / "wilayas_69.csv"):
+                cp.write_row((r["code"], r["name_fr"], r["name_ar"], r["parent_code_58"] or None))
+        with conn.cursor().copy(
+            "COPY communes (id, wilaya_code, name_fr, name_ar, daira) FROM STDIN"
+        ) as cp:
+            for r in _read_csv(ref / "communes_1541.csv"):
+                cp.write_row((r["id"], r["wilaya_code"], r["name_fr"], r["name_ar"], r["daira"]))
+
+
+def _read_csv(path: Path):
+    import csv
+
+    with open(path, encoding="utf-8", newline="") as f:
+        yield from csv.DictReader(f)
 
 
 def main():

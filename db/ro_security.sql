@@ -37,8 +37,12 @@ CREATE VIEW analytics_ro.v_wilayas AS
 SELECT code AS wilaya_code, name_fr, name_ar, parent_code_58
 FROM public.wilayas;
 
+-- wilaya_code_58: the commune's wilaya before the 2026 split, for time series
+-- that must stay comparable across the reform.
 CREATE VIEW analytics_ro.v_communes AS
-SELECT id AS commune_id, wilaya_code, name_fr, name_ar, lat, lng
+SELECT
+    id AS commune_id, wilaya_code, id / 100 AS wilaya_code_58,
+    name_fr, name_ar, daira
 FROM public.communes;
 
 CREATE VIEW analytics_ro.v_services AS
