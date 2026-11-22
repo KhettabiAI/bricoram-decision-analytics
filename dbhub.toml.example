@@ -1,0 +1,25 @@
+# DBHub configuration for Claude Code (template).
+# `uv run python scripts/db.py mcp-config` copies this to dbhub.toml (git-ignored)
+# and fills in the read-only DSN from .env.
+#
+# Defence in depth — this is layer 3 of 4. It is NOT what keeps data safe:
+#   1. PostgreSQL GRANTs (db/ro_security.sql)        ← the real guarantee
+#   2. Role defaults: read-only, 30 s statement timeout
+#   3. DBHub: read-only execute_sql, row cap          ← this file
+#   4. PreToolUse hook hooks/sql_guard.py             ← blocks before the DB is reached
+
+[[sources]]
+id = "bricoram"
+dsn = "__DSN__"
+query_timeout = 30
+
+[[tools]]
+name = "execute_sql"
+source = "bricoram"
+readonly = true
+# Small on purpose: aggregate in SQL instead of pulling rows into the context.
+max_rows = 500
+
+[[tools]]
+name = "search_objects"
+source = "bricoram"

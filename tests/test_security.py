@@ -65,8 +65,9 @@ def test_known_limitation_role_can_relax_its_own_guardrails(seeded):
     but a runaway query is only stopped if SET/ALTER ROLE never reach the DB —
     enforced upstream by the PreToolUse SQL guard hook. Rolled back here."""
     import db
+    from conftest import TEST_DB, ro_password
 
-    with (psycopg.connect(db.ro_url(seeded, "test-only-ro-password")) as conn,
+    with (psycopg.connect(db.ro_url(seeded, ro_password(), dbname=TEST_DB)) as conn,
           conn.transaction(force_rollback=True)):
         conn.execute("SET LOCAL transaction_read_only = off")
         conn.execute("ALTER ROLE claude_analytics_ro SET statement_timeout = 0")  # succeeds

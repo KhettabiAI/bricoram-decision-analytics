@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bricoram-db": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub@1.6.0", "--transport", "stdio", "--config", "dbhub.toml"]
+    }
+  }
+}

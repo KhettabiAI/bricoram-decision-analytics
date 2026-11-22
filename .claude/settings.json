@@ -1,0 +1,43 @@
+{
+  "enabledMcpjsonServers": ["bricoram-db"],
+  "permissions": {
+    "allow": [
+      "mcp__bricoram-db__execute_sql",
+      "mcp__bricoram-db__search_objects",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run python -m sqlfluff lint:*)",
+      "Bash(uv run python scripts/audit_public_prices.py:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./dbhub.toml)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__bricoram-db__.*|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --project \"$CLAUDE_PROJECT_DIR\" python \"$CLAUDE_PROJECT_DIR/hooks/sql_guard.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --project \"$CLAUDE_PROJECT_DIR\" python \"$CLAUDE_PROJECT_DIR/hooks/verify_on_stop.py\"",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

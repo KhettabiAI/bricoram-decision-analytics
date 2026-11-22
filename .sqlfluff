@@ -2,7 +2,8 @@
 dialect = postgres
 max_line_length = 100
 # LT01/LT02: allow column-aligned DDL for readability of table grains.
-exclude_rules = LT01, LT02, LT09, ST06, RF04
+# AL03: only the first branch of a UNION names columns; aliasing every branch is noise.
+exclude_rules = LT01, LT02, LT09, ST06, RF04, AL03
 
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = upper
